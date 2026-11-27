@@ -607,7 +607,7 @@ window.BNMultiSourceV6 = (() => {
     <p class="login-error" id="loginError" role="alert" aria-live="polite"></p>
   </form>
 </main>
-<main class="container" id="siteApp" hidden><aside class="workspace-nav"><div class="workspace-brand-block"><div class="glass-logo" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M7 23 24 8l17 15M12 21v19h24V21" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="24" width="10" height="10" rx="1" fill="currentColor"/></svg></div><div class="nav-brand">บ้านนำโชค6789</div><p class="nav-sub">Workspace</p><div class="workspace-version">Version 19.7 · TG Admin</div></div><nav aria-label="เมนูหลัก"><a class="nav-current" href="#calcForm" aria-current="page"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 11h1m3 0h1m3 0h1M8 15h1m3 0h1m3 0h1"/></svg>สูตรคำนวณ</a><div class="tool-link-grid" aria-label="เปิดหน้าเครื่องมือเพิ่มเติม">
+<main class="container" id="siteApp" hidden><aside class="workspace-nav"><div class="workspace-brand-block"><div class="glass-logo" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M7 23 24 8l17 15M12 21v19h24V21" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="24" width="10" height="10" rx="1" fill="currentColor"/></svg></div><div class="nav-brand">บ้านนำโชค6789</div><p class="nav-sub">Workspace</p><div class="workspace-version">Version 20.0 · TG Admin PIN</div></div><nav aria-label="เมนูหลัก"><a class="nav-current" href="#calcForm" aria-current="page"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M7 7h10M8 11h1m3 0h1m3 0h1M8 15h1m3 0h1m3 0h1"/></svg>สูตรคำนวณ</a><div class="tool-link-grid" aria-label="เปิดหน้าเครื่องมือเพิ่มเติม">
   <a class="reset" href="./hanoi.html" target="_blank" rel="noopener noreferrer"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>ใบเปิด 3 ฮานอย</a>
   <a class="reset" href="./stockmarket.html" target="_blank" rel="noopener noreferrer"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="13" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>ใบเปิดหุ้น</a>
   <a class="reset" id="statisticsLink" href="./Statistics.html" target="_blank" rel="noopener noreferrer"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-7 4 4 8-9m-6 0h6v6"/></svg>สูตรสถิติ</a>
@@ -698,13 +698,13 @@ window.BNMultiSourceV6 = (() => {
 (()=>{
  const endpoint='https://bannumchok6789-telegram.potae-crazy.workers.dev/admin', key='BN_TG_ADMIN_SESSION_V197';
  const gate=document.getElementById('loginGate'),app=document.getElementById('siteApp'),form=document.getElementById('loginForm'),error=document.getElementById('loginError'),user=document.getElementById('loginUsername'),password=document.getElementById('loginPassword'),submit=document.getElementById('loginSubmit');
- let token='',epoch=0;
+ let token='',epoch=0,manageToken='',manageEpoch=0;
  function clear(){for(const store of [localStorage,sessionStorage])try{store.removeItem(key)}catch{};}
  function show(ok){gate.hidden=ok;app.hidden=!ok;password.value='';if(!ok)user.value='admin';}
- async function request(action,extra={},auth=token){const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{'Authorization':'Bearer '+auth}:{})},body:JSON.stringify({action,...extra}),cache:'no-store',credentials:'omit'});const d=await r.json();if(!r.ok||!d.ok){const e=Error(d.error||'เชื่อมต่อไม่สำเร็จ');e.status=r.status;throw e;}return d.result;}
- function invalidate(message){epoch++;token='';clear();window.dispatchEvent(new Event('bn-tg-admin-invalidated'));show(false);error.textContent=message||'';}
+ async function request(action,extra={},auth=token,grant=manageToken){const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{'Authorization':'Bearer '+auth}:{}),...(grant?{'X-Manage-Token':grant}:{})},body:JSON.stringify({action,...extra}),cache:'no-store',credentials:'omit'});const d=await r.json();if(!r.ok||!d.ok){const e=Error(d.error||'เชื่อมต่อไม่สำเร็จ');e.status=r.status;throw e;}return d.result;}
+ function invalidate(message){epoch++;manageEpoch++;manageToken='';token='';clear();window.dispatchEvent(new Event('bn-tg-admin-invalidated'));show(false);error.textContent=message||'';}
  async function logout(){const old=token;invalidate('');if(old)try{await request('logout',{},old)}catch{error.textContent='ออกจากเครื่องนี้แล้ว แต่ยกเลิกเซสชันบนเซิร์ฟเวอร์ไม่สำเร็จ';}}
- window.bnTgAdmin={async api(action,extra){try{return await request(action,extra)}catch(e){if(e.status===401)invalidate(e.message);throw e;}},logout};
+ window.bnTgAdmin={async api(action,extra){try{return await request(action,extra)}catch(e){if(e.status===401)invalidate(e.message);else if(e.status===403&&['state','save','preview','pin_touch'].includes(action))window.dispatchEvent(new Event('bn-tg-manage-expired'));throw e;}},async unlock(pin){const n=++manageEpoch,auth=token;const v=await request('pin_unlock',{pin},auth,'');if(n!==manageEpoch||auth!==token){await request('pin_lock',{},auth,v.token).catch(()=>{});return false;}manageToken=v.token;return true;},lock(){manageEpoch++;const g=manageToken;manageToken='';if(g&&token)request('pin_lock',{},token,g).catch(()=>{});},logout};
  user.value='admin';show(false);
  form.addEventListener('submit',async e=>{e.preventDefault();if(submit.disabled)return;submit.disabled=true;error.textContent='';const n=++epoch;try{const remember=document.getElementById('adminRemember').checked;const v=await request('login',{username:user.value,password:password.value,remember},'');if(n!==epoch)return;token=v.token;clear();try{(remember?localStorage:sessionStorage).setItem(key,token)}catch{};show(true);}catch(e){if(n===epoch){error.textContent=e.message;password.value='';}}finally{submit.disabled=false;}});
  document.getElementById('logoutBtn').addEventListener('click',logout);
@@ -3343,12 +3343,12 @@ function closeOrder(){if(!orderBusy&&!orderGesture)orderDialog.close();}el('ord-
 el('ord-save').onclick=async()=>{if(orderBusy||orderGesture||!state||el('save').disabled)return;if(!confirm('บันทึกลำดับใหม่พร้อมการแก้ไขตารางที่ค้างอยู่? ไม่เปลี่ยนเวลาหรือสถานะเปิด–ปิดจากค่าปัจจุบัน'))return;orderBusy=true;orderSync();const previous=state.rows;const opened=previous[state.openIndex];state.rows=orderDraft.slice();state.openIndex=opened?state.rows.indexOf(opened):null;try{const ok=await saveSchedule();if(ok){render();orderDialog.close();}else{state.rows=previous;state.openIndex=opened?previous.indexOf(opened):null;render();alert('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง');}}finally{orderBusy=false;orderSync();}};
 
 el('save').onclick=saveSchedule;
-el('exit').onclick=()=>{closePreview();window.bnTgAdmin.logout();};
+el('exit').onclick=()=>{closePreview();lockManagement();};
 loadState();
 }
 
 function highlight(i){links.forEach((a,j)=>{if(i===j)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}
-function show(i){if(app.hidden)return;main.hidden=i!==0;host.hidden=i===0;highlight(i);if(!i){views.forEach(v=>v.hidden=true);return;}
+function show(i,authorized=false){if(app.hidden)return;if(i===5&&!authorized&&!manageOpen){openPin();return;}if(i!==5&&(manageOpen||pinDialog.open))lockManagement(false);main.hidden=i!==0;host.hidden=i===0;highlight(i);if(!i){views.forEach(v=>v.hidden=true);return;}
 let view=views.get(i);if(i===5){
 if(!view){view=document.createElement('div');view.className='native-tool';view.style.cssText='width:100%;min-height:650px';
 buildAutomationPanel(view);host.append(view);views.set(i,view);}
@@ -3366,6 +3366,24 @@ if(i===3){
  } else if(!name){delete view.dataset.lastMainLottery;}
 }
 }
+
+let manageOpen=false, idleTimer=0,lastTouch=0,pinEpoch=0;
+const pinDialog=document.createElement('dialog');pinDialog.id='tgManagePin';
+pinDialog.innerHTML=`<style>#tgManagePin{width:min(360px,92vw);max-height:90dvh;overflow:auto;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:24px;padding:22px;background:#fff;color:#17263b;text-align:center;box-shadow:0 24px 80px #0005;margin:auto}#tgManagePin::backdrop{background:#0f172a88;backdrop-filter:blur(4px)}#tgManagePin h2{font-size:22px;margin:8px 0}#tgManagePin p{font-size:13px;margin:8px 0}#tgManagePin input{box-sizing:border-box;width:100%;height:48px;border:1px solid #cbd5e1;border-radius:12px;text-align:center;letter-spacing:10px;font:600 24px system-ui;letter-spacing:10px;background:#f8fafc;color:#17263b}#tgManagePin .pin-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}#tgManagePin button{font:600 16px system-ui;border:1px solid #dbe2ea;border-radius:14px;background:#f1f5f9;color:#17263b;min-height:43px;cursor:pointer}#tgManagePin .pin-confirm{width:100%;background:#1677a7;color:white;border:none}#tgManagePin button:disabled{opacity:.5}#tgManagePin .pin-cancel{width:100%;margin-top:8px}#tgPinError{color:#b91c1c;min-height:20px}</style><div style="font-size:32px;color:#1677a7">🔒</div><h2>ยืนยัน PIN จัดการ</h2><p>กรอกรหัส PIN 6 หลัก เพื่อจัดการ Telegram</p><form id="tgPinForm"><input id="tgPinInput" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="off" aria-label="PIN 6 หลัก" required><div class="pin-keys"></div><p id="tgPinError" role="alert"></p><button class="pin-confirm" type="submit" disabled>ยืนยัน PIN</button><button class="pin-cancel" type="button">ยกเลิก</button></form>`;
+document.body.append(pinDialog);
+const pinInput=pinDialog.querySelector('input'),pinError=pinDialog.querySelector('#tgPinError'),pinConfirm=pinDialog.querySelector('.pin-confirm');let pinBusy=false;
+function syncPin(){pinInput.value=pinInput.value.replace(/[^0-9]/g,'').slice(0,6);pinConfirm.disabled=pinBusy||pinInput.value.length!==6;}
+for(const k of ['1','2','3','4','5','6','7','8','9','','0','⌫']){const b=document.createElement(k?'button':'span');if(k){b.type='button';b.textContent=k;b.onclick=()=>{if(pinBusy)return;pinInput.value=k==='⌫'?pinInput.value.slice(0,-1):pinInput.value+k;syncPin();};}pinDialog.querySelector('.pin-keys').append(b);}
+pinInput.oninput=syncPin;
+function openPin(){if(pinDialog.open)return;pinInput.value='';pinError.textContent='';syncPin();pinDialog.showModal();}
+function lockManagement(returnHome=true){pinEpoch++;manageOpen=false;clearTimeout(idleTimer);window.bnTgAdmin.lock();if(pinDialog.open)pinDialog.close();pinInput.value='';const v=views.get(5);if(v){for(const d of v.shadowRoot.querySelectorAll('dialog[open]'))d.close();v.remove();views.delete(5);}if(returnHome&&!app.hidden)show(0);}
+function activity(){if(!manageOpen)return;clearTimeout(idleTimer);idleTimer=setTimeout(()=>lockManagement(),300000);const now=Date.now();if(now-lastTouch>30000){lastTouch=now;window.bnTgAdmin.api('pin_touch').catch(()=>lockManagement());}}
+for(const ev of ['pointerdown','keydown','touchstart','wheel'])document.addEventListener(ev,activity,{passive:true,capture:true});
+window.addEventListener('bn-tg-manage-expired',()=>lockManagement());window.addEventListener('bn-tg-admin-invalidated',()=>lockManagement(false));
+pinDialog.querySelector('.pin-cancel').onclick=()=>lockManagement(false);
+pinDialog.addEventListener('cancel',e=>{e.preventDefault();lockManagement(false);});
+pinDialog.querySelector('form').onsubmit=async e=>{e.preventDefault();if(pinBusy||pinInput.value.length!==6)return;const n=++pinEpoch;pinBusy=true;syncPin();pinError.textContent='';try{const ok=await window.bnTgAdmin.unlock(pinInput.value);if(!ok||n!==pinEpoch||app.hidden)return;pinDialog.close();manageOpen=true;lastTouch=Date.now();activity();show(5,true);}catch(err){if(n===pinEpoch)pinError.textContent=err.message;}finally{pinBusy=false;pinInput.value='';syncPin();}};
+
 links.forEach((a,i)=>{a.removeAttribute('target');a.setAttribute('href','#tool-'+i);a.addEventListener('click',e=>{e.preventDefault();a.setAttribute('href','#tool-'+i);show(i)})});
 new MutationObserver(()=>{if(app.hidden){views.forEach(v=>v.remove());views.clear();main.hidden=false;host.hidden=true;highlight(0)}}).observe(app,{attributes:true,attributeFilter:['hidden']});highlight(0);
 })();
