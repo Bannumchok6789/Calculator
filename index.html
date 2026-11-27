@@ -699,21 +699,31 @@ window.BNMultiSourceV6 = (() => {
  const endpoint='https://bannumchok6789-telegram.potae-crazy.workers.dev/admin', key='BN_TG_ADMIN_SESSION_V197';
  const gate=document.getElementById('loginGate'),app=document.getElementById('siteApp'),form=document.getElementById('loginForm'),error=document.getElementById('loginError'),user=document.getElementById('loginUsername'),password=document.getElementById('loginPassword'),submit=document.getElementById('loginSubmit');
  let token='',epoch=0,manageToken='',manageEpoch=0;
- function clear(){for(const store of [localStorage,sessionStorage])try{store.removeItem(key)}catch{};}
+ const idleLimit=30*60*1000, idleKey=key+'_LAST_ACTIVITY';
+ let idleTimer=0,lastActivity=0;
+ function readActivity(){try{const store=localStorage.getItem(key)===token?localStorage:sessionStorage;return Number(store.getItem(idleKey))||0}catch{return 0}}
+ function saveActivity(){try{const store=localStorage.getItem(key)===token?localStorage:sessionStorage;store.setItem(idleKey,String(lastActivity))}catch{}}
+ function checkIdle(){clearTimeout(idleTimer);if(!token)return false;lastActivity=Math.max(lastActivity,readActivity());const remaining=idleLimit-(Date.now()-lastActivity);if(remaining<=0){logout('กรุณาเข้าสู่ระบบใหม่ เนื่องจากไม่ได้ใช้งานเกิน 30 นาที');return false;}idleTimer=setTimeout(checkIdle,remaining);return true;}
+ function markActivity(){if(!token||app.hidden||!checkIdle())return;lastActivity=Date.now();saveActivity();checkIdle();}
+ for(const event of ['pointerdown','pointermove','keydown','touchstart','scroll','wheel'])document.addEventListener(event,markActivity,{passive:true,capture:true});
+ document.addEventListener('visibilitychange',()=>{if(token)checkIdle()});
+ window.addEventListener('pageshow',()=>{if(token)checkIdle()});
+
+ function clear(){for(const store of [localStorage,sessionStorage])try{store.removeItem(key);store.removeItem(idleKey)}catch{};}
  function show(ok){gate.hidden=ok;app.hidden=!ok;password.value='';if(!ok)user.value='admin';}
  async function request(action,extra={},auth=token,grant=manageToken){const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{'Authorization':'Bearer '+auth}:{}),...(grant?{'X-Manage-Token':grant}:{})},body:JSON.stringify({action,...extra}),cache:'no-store',credentials:'omit'});const d=await r.json();if(!r.ok||!d.ok){const e=Error(d.error||'เชื่อมต่อไม่สำเร็จ');e.status=r.status;throw e;}return d.result;}
- function invalidate(message){epoch++;manageEpoch++;manageToken='';token='';clear();window.dispatchEvent(new Event('bn-tg-admin-invalidated'));show(false);error.textContent=message||'';}
- async function logout(){const old=token;invalidate('');if(old)try{await request('logout',{},old)}catch{error.textContent='ออกจากเครื่องนี้แล้ว แต่ยกเลิกเซสชันบนเซิร์ฟเวอร์ไม่สำเร็จ';}}
+ function invalidate(message){clearTimeout(idleTimer);lastActivity=0;epoch++;manageEpoch++;manageToken='';token='';clear();window.dispatchEvent(new Event('bn-tg-admin-invalidated'));show(false);error.textContent=message||'';}
+ async function logout(message=''){const old=token;invalidate(typeof message==='string'?message:'');const n=epoch;if(old)try{await request('logout',{},old,'')}catch{if(n===epoch)error.textContent='ออกจากเครื่องนี้แล้ว แต่ยกเลิกเซสชันบนเซิร์ฟเวอร์ไม่สำเร็จ';}}
  window.bnTgAdmin={async api(action,extra){try{return await request(action,extra)}catch(e){if(e.status===401)invalidate(e.message);else if(e.status===403&&['state','save','preview','pin_touch'].includes(action))window.dispatchEvent(new Event('bn-tg-manage-expired'));throw e;}},async unlock(pin){const n=++manageEpoch,auth=token;const v=await request('pin_unlock',{pin},auth,'');if(n!==manageEpoch||auth!==token){await request('pin_lock',{},auth,v.token).catch(()=>{});return false;}manageToken=v.token;return true;},lock(){manageEpoch++;const g=manageToken;manageToken='';if(g&&token)request('pin_lock',{},token,g).catch(()=>{});},logout};
  user.value='admin';show(false);
- form.addEventListener('submit',async e=>{e.preventDefault();if(submit.disabled)return;submit.disabled=true;error.textContent='';const n=++epoch;try{const remember=document.getElementById('adminRemember').checked;const v=await request('login',{username:user.value,password:password.value,remember},'');if(n!==epoch)return;token=v.token;clear();try{(remember?localStorage:sessionStorage).setItem(key,token)}catch{};show(true);}catch(e){if(n===epoch){error.textContent=e.message;password.value='';}}finally{submit.disabled=false;}});
+ form.addEventListener('submit',async e=>{e.preventDefault();if(submit.disabled)return;submit.disabled=true;error.textContent='';const n=++epoch;try{const remember=document.getElementById('adminRemember').checked;const v=await request('login',{username:user.value,password:password.value,remember},'');if(n!==epoch)return;token=v.token;clear();try{(remember?localStorage:sessionStorage).setItem(key,token)}catch{};lastActivity=Date.now();saveActivity();show(true);checkIdle();}catch(e){if(n===epoch){error.textContent=e.message;password.value='';}}finally{submit.disabled=false;}});
  document.getElementById('logoutBtn').addEventListener('click',logout);
- window.addEventListener('storage',e=>{if(e.key===key&&e.oldValue===token&&e.newValue!==token)invalidate('ออกจากระบบแล้ว');});
- async function verify(){if(!token)return;const t=token,n=epoch;try{await request('session',{},t);if(n===epoch)show(true);}catch(e){if(n===epoch){if(e.status===401)invalidate(e.message);else{show(false);error.textContent='ตรวจสอบเซสชันไม่สำเร็จ กรุณาเข้าสู่ระบบใหม่';}}}}
+ window.addEventListener('storage',e=>{if(e.key===idleKey&&token&&e.newValue)checkIdle();if(e.key===key&&e.oldValue===token&&e.newValue!==token)invalidate('ออกจากระบบแล้ว');});
+ async function verify(){if(!token||!checkIdle())return;const t=token,n=epoch;try{await request('session',{},t);if(n===epoch)show(true);}catch(e){if(n===epoch){if(e.status===401)invalidate(e.message);else{show(false);error.textContent='ตรวจสอบเซสชันไม่สำเร็จ กรุณาเข้าสู่ระบบใหม่';}}}}
  try{token=sessionStorage.getItem(key)||localStorage.getItem(key)||''}catch{};
- if(token){submit.disabled=true;verify().finally(()=>submit.disabled=false);}
- window.addEventListener('focus',()=>{if(token)verify()});
- setInterval(()=>{if(token&&!document.hidden)verify()},60000);
+ if(token){lastActivity=readActivity()||Date.now();saveActivity();if(checkIdle()){submit.disabled=true;verify().finally(()=>submit.disabled=false);}}
+ window.addEventListener('focus',()=>{if(token&&checkIdle())verify()});
+ setInterval(()=>{if(token&&checkIdle()&&!document.hidden)verify()},60000);
 })();
 </script>
 <script>
